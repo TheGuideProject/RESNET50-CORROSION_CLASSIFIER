@@ -1,8 +1,11 @@
 {
   "name": "corro-frontend",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
+  "engines": {
+    "node": ">=18.17"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -11,10 +14,13 @@
     "netlify:build": "netlify build"
   },
   "dependencies": {
+    "@netlify/functions": "^2.6.0",
+    "@gradio/client": "^1.7.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@types/node": "^20.11.30",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",
