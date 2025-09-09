@@ -56,7 +56,7 @@ export default function App() {
     fileInput.current?.click()
   }
 
-  const onAnalyze = async () => {
+  async function onAnalyze() {
     try {
       if (!imgDataUrl) {
         setError('Carica o scatta una foto prima di analizzare.')
@@ -67,18 +67,28 @@ export default function App() {
       setHf(null)
       setExplain(null)
 
-      const hfRes = await fetch('/.netlify/functions/hf-classify', {
+      // 1) chiamata allo Space HF via function Netlify
+      const hfRes = await fetch('/.netlify/functions/hf-classify-space', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ dataUrl: imgDataUrl })
       })
+
       if (!hfRes.ok) {
-        const t = await hfRes.text()
-        throw new Error(`HF error: ${t}`)
+        let info = ''
+        try {
+          const j = await hfRes.json()
+          info = j?.error ? ` ${j.error}: ${j.detail || ''}` : ` ${JSON.stringify(j)}`
+        } catch {
+          info = ' (nessun dettaglio dal server)'
+        }
+        throw new Error(`HF error:${info}`)
       }
+
       const hfJson = (await hfRes.json()) as HFResult
       setHf(hfJson)
 
+      // 2) Spiegazione OpenAI
       const oaRes = await fetch('/.netlify/functions/openai-explain', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -91,10 +101,18 @@ export default function App() {
           allowed: ALLOWED
         })
       })
+
       if (!oaRes.ok) {
-        const t = await oaRes.text()
-        throw new Error(`OpenAI error: ${t}`)
+        let info = ''
+        try {
+          const j = await oaRes.json()
+          info = j?.error ? ` ${j.error}: ${j.detail || ''}` : ` ${JSON.stringify(j)}`
+        } catch {
+          info = ' (nessun dettaglio dal server)'
+        }
+        throw new Error(`OpenAI error:${info}`)
       }
+
       const oaJson = (await oaRes.json()) as ExplainResult
       setExplain(oaJson)
     } catch (e: any) {
@@ -219,3 +237,4 @@ const card: React.CSSProperties = {
   borderRadius: 12,
   padding: 12
 }
+
