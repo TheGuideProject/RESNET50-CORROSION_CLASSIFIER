@@ -88,16 +88,30 @@ export default function App() {
       const hfJson = (await hfRes.json()) as HFResult
       setHf(hfJson)
 
-      // 2) Spiegazione OpenAI
+      // 2) Spiegazione OpenAI con immagine
+      await askAI(question, hfJson, imgDataUrl)
+    } catch (e: any) {
+      setError(e.message ?? 'Errore sconosciuto.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Unifica la logica per inviare la domanda ad OpenAI
+  async function askAI(q: string, hfData?: HFResult | null, img?: string | null) {
+    setLoading(true)
+    setError(null)
+    setExplain(null)
+    try {
       const oaRes = await fetch('/.netlify/functions/openai-explain', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          dataUrl: imgDataUrl,
-          label: hfJson.label,
-          score: hfJson.score,
-          topk: hfJson.topk,
-          question,
+          dataUrl: img || null,
+          label: hfData?.label || null,
+          score: hfData?.score || null,
+          topk: hfData?.topk || null,
+          question: q,
           allowed: ALLOWED
         })
       })
@@ -122,12 +136,20 @@ export default function App() {
     }
   }
 
+  // Nuovo: invio solo domanda, anche senza immagine o risultato HF
+  async function onAsk() {
+    if (!question.trim()) {
+      setError('Scrivi una domanda prima di inviare.')
+      return
+    }
+    await askAI(question, hf, imgDataUrl)
+  }
+
   return (
     <div style={{ maxWidth: 920, margin: '0 auto', padding: '24px' }}>
       <h1 style={{ margin: 0, fontSize: 28 }}>Corrosion Classifier + AI Explain</h1>
       <p style={{ opacity: 0.8, marginTop: 8 }}>
-        Carica o scatta una foto. Il modello HF restituisce tipo di corrosione e confidenza.
-        OpenAI aggiunge contesto tecnico coerente.
+        Carica o scatta una foto per analizzarla, oppure scrivi direttamente una domanda tecnica.
       </p>
 
       <div style={container}>
@@ -164,9 +186,14 @@ export default function App() {
           placeholder="Scrivi qui la tua domanda…"
           style={ta}
         />
+        <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+          <button onClick={onAsk} style={{ ...btn, background: '#9333ea' }}>
+            {loading ? 'Invio…' : 'Invia domanda'}
+          </button>
+        </div>
 
         {error && (
-          <div style={{ background:'#3b1a1a', border:'1px solid #6b1f1f', color:'#ffd7d7', padding:12, borderRadius:8 }}>
+          <div style={{ background:'#3b1a1a', border:'1px solid #6b1f1f', color:'#ffd7d7', padding:12, borderRadius:8, marginTop: 8 }}>
             Errore: {error}
           </div>
         )}
@@ -189,7 +216,7 @@ export default function App() {
 
         {explain && (
           <div style={card}>
-            <h3 style={{ marginTop: 0 }}>Commento tecnico (OpenAI)</h3>
+            <h3 style={{ marginTop: 0 }}>Risposta AI</h3>
             <div style={{ whiteSpace: 'pre-wrap' }}>{explain.answer}</div>
           </div>
         )}
@@ -237,4 +264,5 @@ const card: React.CSSProperties = {
   borderRadius: 12,
   padding: 12
 }
+
 
